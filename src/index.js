@@ -1,26 +1,45 @@
 const inquirer = require('inquirer');
-const { build } = require('./projectBuilder');
-const { vanillaTemplate, vanillaChoices } = require('./templates/vanilla');
+const fs = require('fs');
+const { init, build } = require('./projectBuilder');
 
-const projectChoices = ['Vanilla'];
+const existingConfig = fs.existsSync('pakage.json');
 
+const existingConfigQuestion = [
+    {
+        type: 'confirm',
+        name: 'overwrite',
+        message: 'You already have an existing package.json! Would you like to overwrite it?',
+        default: false,
+    }
+];
 
+const nonExistingConfigQuestion = [
+    {
+        type: 'confirm',
+        name: 'create',
+        message: 'You do not have an existing package.json! Would you like to make one?',
+        default: false,
+    }
+]
 
-inquirer
-    .prompt([{
-        type: 'list',
-        name: 'type',
-        message: 'What kind of project do you want to build?',
-        choices: projectChoices,
-        default: projectChoices[0]
-    }])
-    .then(answers => {
-        console.log(answers);
-    })
-    .catch(error => {
-        if (error.isTtyError) {
-            console.error('Prompt could not be rendered in the current environment');
-        } else {
-            console.error('Something unexpected happened. Error message: ', error);
-        }
-    });
+if (existingConfig) {
+    inquirer
+        .prompt(existingConfigQuestion)
+        .then(async answer => {
+            await init(answer.overwrite);
+            build();
+        })
+        .catch(error => {
+            console.error('Something went terribly wrong: ', error);
+        });
+} else {
+    inquirer
+        .prompt(nonExistingConfigQuestion)
+        .then(async answer => {
+            await init(answer.create);
+            build();
+        })
+        .catch(error => {
+            console.error('Something went terribly wrong: ', error);
+        });
+}
